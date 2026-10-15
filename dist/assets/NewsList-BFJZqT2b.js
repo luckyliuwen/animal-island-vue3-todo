@@ -1,0 +1,1 @@
+import{I as e,p as t}from"./runtime-core.esm-bundler-EK5lWcpx.js";var n={__name:`NewsList`,setup(n){return(n,r)=>(e(),t(`div`,null,` 新闻列表 `))}};export{n as default};

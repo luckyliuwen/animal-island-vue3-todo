@@ -1,12 +1,18 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  // hash 模式，适配 Gitee Pages 等静态托管（刷新不 404）
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/login',
       name: 'Login',
       component: () => import('@/views/login/index.vue'),
+    },
+    {
+      path: '/todo',
+      name: 'Todo',
+      component: () => import('@/views/todo/index.vue'),
     },
     {
       path: '/home',

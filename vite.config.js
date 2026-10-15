@@ -11,6 +11,8 @@ import { FileSystemIconLoader } from 'unplugin-icons/loaders';
 import tailwindcss from '@tailwindcss/vite';
 // https://vite.dev/config/
 export default defineConfig({
+  // 相对路径部署，适配 Gitee Pages 子路径
+  base: './',
   plugins: [
     vue(),
     vueDevTools(),

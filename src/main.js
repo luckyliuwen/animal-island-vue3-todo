@@ -8,6 +8,7 @@ import 'element-plus/dist/index.css'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { Icon } from '@iconify/vue'
 import '@/assets/styles/main.css'
+import 'animal-island-vue/style';
 
 const app = createApp(App)
 

@@ -13,4 +13,8 @@ onMounted(() => {
 
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.app-container {
+  height: 100vh
+}
+</style>
