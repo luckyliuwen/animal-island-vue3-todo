@@ -5,6 +5,10 @@ const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/',
+      redirect: '/todo',
+    },
+    {
       path: '/login',
       name: 'Login',
       component: () => import('@/views/login/index.vue'),
