@@ -1,13 +1,12 @@
 <template>
-    <div class=" w-200 mx-auto">
-        <div class="mt-5 flex gap-3">
+    <div class="w-200 mx-auto pt-5">
+        <div class="flex gap-3">
             <Select v-model="selectedCategory" :options="categoryOptions" class="w-32 category-select" />
             <Input class="flex-1" v-model="addTodo" placeholder="请输入待办事项" :shadow="true" size="large" prefix="➕"
                 suffix="⏎" @keydown.enter="addTodoItem" />
         </div>
         <Tabs v-model="activeTab" :items="tabItems" :shadow="true" class="mt-5" aria-label="待办分类页签">
             <template #todo>
-
                 <Card v-for="item in pendingList" :key="item.todoObj.value" pattern="app-orange"
                     class="mt-5 flex justify-between items-center">
                     <Checkbox v-model="checkedList"

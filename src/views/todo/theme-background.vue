@@ -1,17 +1,22 @@
 <template>
-    <div class="h-full">
+    <div class="h-full" style="position: relative;">
         <!-- 作为内容区块的背景容器 -->
         <Background :type="bgType">
-            <!-- 背景主题选择器 -->
-            <Select v-model="bgType" :options="options" />
+            <div style="position: absolute;right: 20px;top: 20px;">
+                切换主题 ✨
+                <!-- 背景主题选择器 -->
+                <Select v-model="bgType" :options="options" />
+            </div>
             <slot />
         </Background>
+        <!-- 基础用法 — 右下角钱袋返回顶部 -->
+        <BackTop :visibilityHeight="40" />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Background, Select, type BackgroundType } from 'animal-island-vue';
+import { Background, BackTop, Select, type BackgroundType } from 'animal-island-vue';
 
 // 当前背景主题
 const bgType = ref<BackgroundType>('sprinkles');
