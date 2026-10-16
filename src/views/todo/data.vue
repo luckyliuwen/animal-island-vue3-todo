@@ -9,8 +9,9 @@
             <template #todo>
                 <Card v-for="item in pendingList" :key="item.todoObj.value" pattern="app-orange"
                     class="mt-5 flex justify-between items-center">
-                    <Checkbox v-model="checkedList"
-                        :options="[{ label: item.todoObj.label, value: item.todoObj.value }]" direction="vertical" />
+                    <Checkbox :model-value="checkedList.includes(item.todoObj.value) ? [item.todoObj.value] : []"
+                        :options="[{ label: item.todoObj.label, value: item.todoObj.value }]" direction="vertical"
+                        @update:model-value="(v: CheckboxValue[]) => syncChecked(item.todoObj.value, v)" />
                     <div>
                         <Tag :color="item.tagObj.color" class="mr-3">{{ item.tagObj.text }}</Tag>
                         <Button type="primary" danger size="small" @click="openDelete(item)">删除</Button>
@@ -21,8 +22,9 @@
             <template #done>
                 <Card v-for="item in doneList" :key="item.todoObj.value" pattern="app-orange"
                     class="mt-5 flex justify-between items-center">
-                    <Checkbox v-model="checkedList"
-                        :options="[{ label: item.todoObj.label, value: item.todoObj.value }]" direction="vertical" />
+                    <Checkbox :model-value="checkedList.includes(item.todoObj.value) ? [item.todoObj.value] : []"
+                        :options="[{ label: item.todoObj.label, value: item.todoObj.value }]" direction="vertical"
+                        @update:model-value="(v: CheckboxValue[]) => syncChecked(item.todoObj.value, v)" />
                     <div>
                         <Tag :color="item.tagObj.color" class="mr-3">{{ item.tagObj.text }}</Tag>
                         <Button type="primary" danger size="small" @click="openDelete(item)">删除</Button>
@@ -72,6 +74,7 @@ const categoryOptions: { key: TodoCategoryKey; label: string }[] = [
 ];
 
 const STORAGE_KEY = 'animal-todo-list';
+const CHECKED_KEY = 'animal-todo-checked';
 
 const defaultTodos: TodoItem[] = [];
 
@@ -85,16 +88,37 @@ function loadTodos(): TodoItem[] {
     }
 }
 
+function loadChecked(): CheckboxValue[] {
+    try {
+        const raw = localStorage.getItem(CHECKED_KEY);
+        const parsed = raw ? JSON.parse(raw) : null;
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
 const addTodo = ref('');
 const selectedCategory = ref<TodoCategoryKey>('life');
 const currentItem = ref<TodoItem>();
 const open = ref(false);
-const checkedList = ref<CheckboxValue[]>([]);
+const checkedList = ref<CheckboxValue[]>(loadChecked());
 // 已归入“已办”页签的值：勾选状态变化后延迟 2s 同步
-const doneValues = ref<CheckboxValue[]>([]);
+const doneValues = ref<CheckboxValue[]>([...checkedList.value]);
 const MOVE_DELAY = 2000;
 const moveTimers = new Map<CheckboxValue, ReturnType<typeof setTimeout>>();
 const todoList = ref<TodoItem[]>(loadTodos());
+
+// 勾选状态合并：避免多个 Checkbox 各自覆盖整个 checkedList
+const syncChecked = (value: CheckboxValue, newVal: CheckboxValue[]) => {
+    const isNowChecked = newVal.includes(value);
+    const wasChecked = checkedList.value.includes(value);
+    if (isNowChecked && !wasChecked) {
+        checkedList.value = [...checkedList.value, value];
+    } else if (!isNowChecked && wasChecked) {
+        checkedList.value = checkedList.value.filter(v => v !== value);
+    }
+};
 
 // 页签：待办 / 已办（勾选 / 取消勾选均延迟 2s 生效）
 const activeTab = ref('todo');
@@ -107,8 +131,16 @@ const doneList = computed(() => todoList.value.filter(item => doneValues.value.i
 
 watch(checkedList, (next, prev) => {
     const prevList = prev ?? [];
+    // 合并新旧值并去重，避免依赖 Set 迭代器
+    const all: CheckboxValue[] = [];
+    for (const value of next) {
+        if (all.indexOf(value) === -1) all.push(value);
+    }
+    for (const value of prevList) {
+        if (all.indexOf(value) === -1) all.push(value);
+    }
     // 勾选状态发生变化的项，2s 后按当前状态同步归属；期间再变化则重置计时
-    for (const value of new Set<CheckboxValue>([...next, ...prevList])) {
+    for (const value of all) {
         if (next.includes(value) === prevList.includes(value)) continue;
         const oldTimer = moveTimers.get(value);
         if (oldTimer) clearTimeout(oldTimer);
@@ -134,6 +166,10 @@ onBeforeUnmount(() => {
 watch(todoList, (list) => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 }, { deep: true });
+
+watch(checkedList, (list) => {
+    localStorage.setItem(CHECKED_KEY, JSON.stringify(list));
+});
 
 const addTodoItem = () => {
     const text = addTodo.value.trim();
