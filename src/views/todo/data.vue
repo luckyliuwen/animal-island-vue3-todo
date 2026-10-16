@@ -43,7 +43,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import {
     Button, Modal, Tabs,
     Select, Input, Tag, Checkbox, type CheckboxValue, type TagColor, type TabItem, Card
@@ -90,16 +90,45 @@ const selectedCategory = ref<TodoCategoryKey>('life');
 const currentItem = ref<TodoItem>();
 const open = ref(false);
 const checkedList = ref<CheckboxValue[]>([]);
+// 已归入“已办”页签的值：勾选状态变化后延迟 2s 同步
+const doneValues = ref<CheckboxValue[]>([]);
+const MOVE_DELAY = 2000;
+const moveTimers = new Map<CheckboxValue, ReturnType<typeof setTimeout>>();
 const todoList = ref<TodoItem[]>(loadTodos());
 
-// 页签：待办 / 已办（按勾选状态划分）
+// 页签：待办 / 已办（勾选 / 取消勾选均延迟 2s 生效）
 const activeTab = ref('todo');
 const tabItems: TabItem[] = [
     { key: 'todo', label: '待办' },
     { key: 'done', label: '已办' },
 ];
-const pendingList = computed(() => todoList.value.filter(item => !checkedList.value.includes(item.todoObj.value)));
-const doneList = computed(() => todoList.value.filter(item => checkedList.value.includes(item.todoObj.value)));
+const pendingList = computed(() => todoList.value.filter(item => !doneValues.value.includes(item.todoObj.value)));
+const doneList = computed(() => todoList.value.filter(item => doneValues.value.includes(item.todoObj.value)));
+
+watch(checkedList, (next, prev) => {
+    const prevList = prev ?? [];
+    // 勾选状态发生变化的项，2s 后按当前状态同步归属；期间再变化则重置计时
+    for (const value of new Set<CheckboxValue>([...next, ...prevList])) {
+        if (next.includes(value) === prevList.includes(value)) continue;
+        const oldTimer = moveTimers.get(value);
+        if (oldTimer) clearTimeout(oldTimer);
+        moveTimers.set(value, setTimeout(() => {
+            moveTimers.delete(value);
+            const isChecked = checkedList.value.includes(value);
+            const isDone = doneValues.value.includes(value);
+            if (isChecked && !isDone) {
+                doneValues.value.push(value);
+            } else if (!isChecked && isDone) {
+                doneValues.value = doneValues.value.filter(v => v !== value);
+            }
+        }, MOVE_DELAY));
+    }
+});
+
+onBeforeUnmount(() => {
+    moveTimers.forEach(timer => clearTimeout(timer));
+    moveTimers.clear();
+});
 
 // 列表变化时持久化到 localStorage
 watch(todoList, (list) => {
@@ -124,8 +153,14 @@ const openDelete = (item: TodoItem) => {
 const handleDelete = () => {
     if (!currentItem.value) return;
     const value = currentItem.value.todoObj.value;
+    const timer = moveTimers.get(value);
+    if (timer) {
+        clearTimeout(timer);
+        moveTimers.delete(value);
+    }
     todoList.value = todoList.value.filter(item => item.todoObj.value !== value);
     checkedList.value = checkedList.value.filter(v => v !== value);
+    doneValues.value = doneValues.value.filter(v => v !== value);
     currentItem.value = undefined;
     open.value = false;
 }
